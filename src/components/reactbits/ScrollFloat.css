@@ -1,0 +1,19 @@
+.scroll-float {
+  overflow: hidden;
+}
+
+.scroll-float-text {
+  display: inline-block;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+/* Default font size if not overridden by explicit utility classes */
+.scroll-float-text:not([class*="text-"]) {
+  font-size: clamp(1.6rem, 8vw, 10rem);
+  text-align: center;
+}
+
+.char {
+  display: inline-block;
+}
