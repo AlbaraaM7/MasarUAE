@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import SquishSwitch from "@/components/reactbits/SquishSwitch";
 import Aurora from "@/components/reactbits/Aurora";
-import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/components/ToastProvider";
 import { saveStudentProfile, getStudentProfile } from "@/lib/studentProfile";
@@ -42,9 +41,6 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
   const [loginSubmitting, setLoginSubmitting] = useState(false);
 
   // Signup form state
-  const [signupPhone, setSignupPhone] = useState("");
-  const [signupFullName, setSignupFullName] = useState("");
-  const [signupUsername, setSignupUsername] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -147,10 +143,10 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupEmail || !signupFullName) {
+    if (!signupEmail) {
       showToast({
-        title: "Required Fields Missing",
-        description: "Please enter your full name and student email.",
+        title: "Missing Email",
+        description: "Please enter your student email.",
         fuseColor: "#f59e0b",
         duration: 3000,
       });
@@ -170,23 +166,21 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
     setSignupSubmitting(true);
     showToast({
       title: "Creating Student Account",
-      description: "Setting up your UAE student profile...",
+      description: "Setting up your student account...",
       fuseColor: "#10b981",
       duration: 3000,
     });
 
     try {
-      const parts = signupFullName.trim().split(" ");
-      const firstName = parts[0] || "Rashid";
-      const lastName = parts.slice(1).join(" ") || "Al-Maktoum";
+      const emailPrefix = signupEmail.split("@")[0] || "Student";
+      const cleanName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
 
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail.trim(),
         password: signupPassword,
         options: {
           data: {
-            full_name: signupFullName.trim(),
-            phone: signupPhone ? `+971 ${signupPhone}` : undefined,
+            full_name: cleanName,
           },
         },
       });
@@ -207,10 +201,8 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
       saveStudentProfile({
         ...current,
         id: data?.user?.id || current.id,
-        firstName,
-        lastName,
+        firstName: cleanName,
         email: signupEmail,
-        phone: signupPhone ? `+971 ${signupPhone}` : current.phone,
       });
 
       if (typeof window !== "undefined") {
@@ -220,7 +212,7 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
 
       showToast({
         title: "Account Created!",
-        description: `Welcome to MasarUAE, ${firstName}!`,
+        description: `Welcome to MasarUAE, ${cleanName}!`,
         fuseColor: "#10b981",
         duration: 3500,
       });
@@ -511,59 +503,10 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
                 </div>
 
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  {/* Phone number with UAE Flag & Prefix */}
+                  {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                      Phone number
-                    </label>
-                    <div className="flex items-center rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-3.5 py-2.5 focus-within:border-blue-600 dark:focus-within:border-emerald-400 transition-colors">
-                      <div className="flex items-center space-x-1.5 pr-2.5 border-r border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 shrink-0 select-none">
-                        <span className="text-base leading-none">🇦🇪</span>
-                        <span>+971</span>
-                      </div>
-                      <input
-                        type="tel"
-                        placeholder="50 123 4567"
-                        value={signupPhone}
-                        onChange={(e) => setSignupPhone(e.target.value)}
-                        className="w-full pl-3 bg-transparent text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Full Name & Username */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Full Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Rashid Al-Maktoum"
-                        value={signupFullName}
-                        onChange={(e) => setSignupFullName(e.target.value)}
-                        className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Username
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="rashid_uae"
-                        value={signupUsername}
-                        onChange={(e) => setSignupUsername(e.target.value)}
-                        className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Student Email */}
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                      Student Email
+                      Email
                     </label>
                     <input
                       type="email"
@@ -571,7 +514,7 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
                       placeholder="student@school.ae"
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
-                      className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                      className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
                     />
                   </div>
 
@@ -587,30 +530,30 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
                         placeholder="••••••••••••"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
-                        className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-3.5 py-2.5 pr-10 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                        className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 pr-10 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setShowSignupPassword(!showSignupPassword)}
-                        className="absolute right-3.5 top-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                        className="absolute right-3.5 top-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
                         title={showSignupPassword ? "Hide password" : "Show password"}
                       >
                         {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                     <p className="mt-1 text-[11px] text-zinc-400 leading-normal">
-                      At least 8 characters. Uppercase letters, lowercase letters, numbers, and symbols.
+                      At least 6 characters.
                     </p>
                   </div>
 
-                  {/* Continue / Sign Up Button (No star icon) */}
+                  {/* Sign Up Button */}
                   <div className="pt-2">
                     <button
                       type="submit"
                       disabled={signupSubmitting}
                       className="w-full flex items-center justify-center space-x-2 py-3 px-6 rounded-2xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-zinc-950 shadow-md hover:scale-[1.01] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                     >
-                      <span>{signupSubmitting ? "Creating Account..." : "Continue"}</span>
+                      <span>{signupSubmitting ? "Creating Account..." : "Create Account"}</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -629,27 +572,16 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
                     </p>
                   </div>
 
-                  {/* Divider */}
-                  <div className="relative py-2 flex items-center justify-center">
-                    <div className="w-full border-t border-zinc-200 dark:border-white/10" />
-                    <span className="absolute bg-white dark:bg-zinc-950 px-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                      Or continue with
-                    </span>
-                  </div>
-
-                  {/* Social Login Buttons */}
-                  <SocialLoginButtons actionLabel="Sign Up" redirectTo="/dashboard" />
-
                   {/* Legal Terms */}
                   <p className="text-[11px] text-center text-zinc-400 leading-relaxed pt-2">
-                    By signing up I confirm that I carefully have read and agree to MasarUAE{" "}
-                    <span className="text-zinc-600 dark:text-zinc-300 font-semibold underline cursor-pointer">
+                    By signing up I confirm that I agree to MasarUAE{" "}
+                    <Link href="/privacy" className="text-zinc-600 dark:text-zinc-300 font-semibold underline">
                       Privacy Policy
-                    </span>{" "}
+                    </Link>{" "}
                     and{" "}
-                    <span className="text-zinc-600 dark:text-zinc-300 font-semibold underline cursor-pointer">
+                    <Link href="/terms" className="text-zinc-600 dark:text-zinc-300 font-semibold underline">
                       Terms of Service
-                    </span>
+                    </Link>
                     .
                   </p>
                 </form>
@@ -674,15 +606,15 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
-                  {/* Email / Username Input */}
+                  {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                      Enter Email
+                      Email
                     </label>
                     <input
-                      type="text"
+                      type="email"
                       required
-                      placeholder="student@school.ae or username"
+                      placeholder="student@school.ae"
                       value={loginEmailOrPhone}
                       onChange={(e) => setLoginEmailOrPhone(e.target.value)}
                       className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
@@ -748,17 +680,6 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
                       </button>
                     </p>
                   </div>
-
-                  {/* Divider */}
-                  <div className="relative py-2 flex items-center justify-center">
-                    <div className="w-full border-t border-zinc-200 dark:border-white/10" />
-                    <span className="absolute bg-white dark:bg-zinc-950 px-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                      Or continue with
-                    </span>
-                  </div>
-
-                  {/* Social Login Buttons */}
-                  <SocialLoginButtons actionLabel="Log In" redirectTo="/dashboard" />
 
                   {/* Secure Student Portal Badge */}
                   <div className="pt-4 flex items-center justify-center space-x-2 text-zinc-400 dark:text-zinc-500 text-xs">
