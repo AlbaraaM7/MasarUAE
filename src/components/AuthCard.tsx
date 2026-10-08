@@ -41,6 +41,8 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
   const [loginSubmitting, setLoginSubmitting] = useState(false);
 
   // Signup form state
+  const [signupFirstName, setSignupFirstName] = useState("");
+  const [signupLastName, setSignupLastName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -98,18 +100,69 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
         }
 
         if (data?.user) {
+          const meta = data.user.user_metadata || {};
+          let fName = meta.first_name || "";
+          let lName = meta.last_name || "";
+
+          if (!fName && meta.full_name) {
+            const parts = meta.full_name.trim().split(/\s+/);
+            fName = parts[0];
+            lName = parts.slice(1).join(" ");
+          }
+
+          // Try querying profiles table for full_name
+          try {
+            const { data: profileRow } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("id", data.user.id)
+              .maybeSingle();
+
+            if (profileRow?.full_name && !fName) {
+              const parts = profileRow.full_name.trim().split(/\s+/);
+              fName = parts[0];
+              lName = parts.slice(1).join(" ");
+            }
+          } catch (pErr) {
+            console.warn("Could not query profiles table:", pErr);
+          }
+
+          // Fallback parsing from email if no name found
+          if (!fName) {
+            const emailPrefix = (data.user.email || loginEmailOrPhone).split("@")[0] || "Student";
+            const namePart = emailPrefix.split(/[._-]/)[0];
+            fName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+          }
+
+          if (fName.includes(".")) {
+            fName = fName.split(".")[0];
+          }
+
           const current = getStudentProfile();
           saveStudentProfile({
             ...current,
             id: data.user.id,
+            firstName: fName || current.firstName,
+            lastName: lName || current.lastName,
             email: data.user.email || loginEmailOrPhone,
           });
         }
       } else {
         const current = getStudentProfile();
+        let fName = current.firstName;
         if (loginEmailOrPhone.includes("@")) {
-          saveStudentProfile({ ...current, email: loginEmailOrPhone });
+          const emailPrefix = loginEmailOrPhone.split("@")[0] || "Student";
+          const namePart = emailPrefix.split(/[._-]/)[0];
+          fName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
         }
+        if (fName && fName.includes(".")) {
+          fName = fName.split(".")[0];
+        }
+        saveStudentProfile({
+          ...current,
+          firstName: fName,
+          email: loginEmailOrPhone,
+        });
       }
 
       if (typeof window !== "undefined") {
@@ -120,7 +173,7 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
       const currentProfile = getStudentProfile();
       showToast({
         title: "Welcome Back!",
-        description: `Signed in as ${currentProfile.firstName || "Student"} ${currentProfile.lastName || ""}.`,
+        description: `Signed in as ${currentProfile.firstName || "Student"}.`,
         fuseColor: "#10b981",
         duration: 3500,
       });
@@ -143,6 +196,29 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanFirstName = signupFirstName.trim();
+    const cleanLastName = signupLastName.trim();
+
+    if (!cleanFirstName) {
+      showToast({
+        title: "Missing First Name",
+        description: "Please enter your first name.",
+        fuseColor: "#f59e0b",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!cleanLastName) {
+      showToast({
+        title: "Missing Last Name",
+        description: "Please enter your last name.",
+        fuseColor: "#f59e0b",
+        duration: 3000,
+      });
+      return;
+    }
+
     if (!signupEmail) {
       showToast({
         title: "Missing Email",
@@ -172,15 +248,16 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
     });
 
     try {
-      const emailPrefix = signupEmail.split("@")[0] || "Student";
-      const cleanName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+      const fullName = `${cleanFirstName} ${cleanLastName}`.trim();
 
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail.trim(),
         password: signupPassword,
         options: {
           data: {
-            full_name: cleanName,
+            first_name: cleanFirstName,
+            last_name: cleanLastName,
+            full_name: fullName,
           },
         },
       });
@@ -201,7 +278,7 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
         try {
           await supabase.from("profiles").upsert({
             id: data.user.id,
-            full_name: cleanName,
+            full_name: fullName,
             email: signupEmail.trim(),
           });
         } catch (dbErr) {
@@ -213,8 +290,9 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
       saveStudentProfile({
         ...current,
         id: data?.user?.id || current.id,
-        firstName: cleanName,
-        email: signupEmail,
+        firstName: cleanFirstName,
+        lastName: cleanLastName,
+        email: signupEmail.trim(),
       });
 
       if (typeof window !== "undefined") {
@@ -224,7 +302,7 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
 
       showToast({
         title: "Account Created!",
-        description: `Welcome to MasarUAE, ${cleanName}!`,
+        description: `Welcome to Masar UAE, ${cleanFirstName}!`,
         fuseColor: "#10b981",
         duration: 3500,
       });
@@ -515,6 +593,36 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
                 </div>
 
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  {/* First Name & Last Name */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Rashid"
+                        value={signupFirstName}
+                        onChange={(e) => setSignupFirstName(e.target.value)}
+                        className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Al-Nuaimi"
+                        value={signupLastName}
+                        onChange={(e) => setSignupLastName(e.target.value)}
+                        className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+
                   {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">

@@ -33,7 +33,11 @@ export function getStudentProfile(): StudentProfile {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return { ...DEFAULT_STUDENT_PROFILE, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      if (parsed.firstName && parsed.firstName.includes(".")) {
+        parsed.firstName = parsed.firstName.split(".")[0];
+      }
+      return { ...DEFAULT_STUDENT_PROFILE, ...parsed };
     }
   } catch (e) {
     console.error("Failed to read student profile:", e);
@@ -44,6 +48,9 @@ export function getStudentProfile(): StudentProfile {
 export function saveStudentProfile(profile: StudentProfile): void {
   if (typeof window === "undefined") return;
   try {
+    if (profile.firstName && profile.firstName.includes(".")) {
+      profile.firstName = profile.firstName.split(".")[0];
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
     window.dispatchEvent(new CustomEvent("masar_student_profile_updated", { detail: profile }));
   } catch (e) {

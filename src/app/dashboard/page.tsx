@@ -14,8 +14,9 @@ import {
   Building2,
   UserCog
 } from "lucide-react";
-import { getStudentProfile, StudentProfile } from "@/lib/studentProfile";
+import { getStudentProfile, StudentProfile, saveStudentProfile } from "@/lib/studentProfile";
 import { UpdateProfileModal } from "@/components/UpdateProfileModal";
+import { supabase } from "@/lib/supabase";
 
 import CountUp from "@/components/reactbits/CountUp";
 
@@ -24,9 +25,55 @@ export default function DashboardPage() {
   const [updateProfileOpen, setUpdateProfileOpen] = useState(false);
 
   useEffect(() => {
-    setProfile(getStudentProfile());
+    const syncProfile = () => {
+      const p = getStudentProfile();
+      if (p.firstName && p.firstName.includes(".")) {
+        p.firstName = p.firstName.split(".")[0];
+      }
+      setProfile(p);
+    };
+
+    syncProfile();
+
+    // Check Supabase user metadata if available
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        const meta = data.user.user_metadata || {};
+        let fName = meta.first_name || "";
+        let lName = meta.last_name || "";
+        if (!fName && meta.full_name) {
+          const parts = meta.full_name.trim().split(/\s+/);
+          fName = parts[0];
+          lName = parts.slice(1).join(" ");
+        }
+        if (!fName) {
+          const emailPrefix = (data.user.email || "").split("@")[0] || "";
+          if (emailPrefix) {
+            const clean = emailPrefix.split(/[._-]/)[0];
+            fName = clean.charAt(0).toUpperCase() + clean.slice(1);
+          }
+        }
+        if (fName) {
+          if (fName.includes(".")) {
+            fName = fName.split(".")[0];
+          }
+          const current = getStudentProfile();
+          if (current.firstName !== fName) {
+            const updated = {
+              ...current,
+              firstName: fName,
+              lastName: lName || current.lastName,
+              email: data.user.email || current.email,
+            };
+            saveStudentProfile(updated);
+            setProfile(updated);
+          }
+        }
+      }
+    });
+
     const handleProfileUpdate = () => {
-      setProfile(getStudentProfile());
+      syncProfile();
     };
     window.addEventListener("masar_student_profile_updated", handleProfileUpdate);
     return () => window.removeEventListener("masar_student_profile_updated", handleProfileUpdate);
