@@ -197,6 +197,18 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
         return;
       }
 
+      if (data?.user) {
+        try {
+          await supabase.from("profiles").upsert({
+            id: data.user.id,
+            full_name: cleanName,
+            email: signupEmail.trim(),
+          });
+        } catch (dbErr) {
+          console.warn("Profile table sync notice (non-fatal):", dbErr);
+        }
+      }
+
       const current = getStudentProfile();
       saveStudentProfile({
         ...current,
