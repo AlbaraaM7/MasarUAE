@@ -94,4 +94,10 @@ body {
   animation-play-state: paused;
 }
 
+/* Suppress native browser password reveal and clear buttons (Microsoft Edge, Chromium on Windows) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 
