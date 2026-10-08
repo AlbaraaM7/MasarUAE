@@ -23,6 +23,7 @@ import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/components/ToastProvider";
 import { saveStudentProfile, getStudentProfile } from "@/lib/studentProfile";
+import { supabase } from "@/lib/supabase";
 
 interface AuthCardProps {
   initialMode?: "login" | "signup";
@@ -60,12 +61,12 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginEmailOrPhone) {
       showToast({
         title: "Missing Email or Username",
-        description: "Please enter your registered student email or phone number.",
+        description: "Please enter your registered student email.",
         fuseColor: "#f59e0b",
         duration: 3000,
       });
@@ -75,35 +76,76 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
     setLoginSubmitting(true);
     showToast({
       title: "Authenticating",
-      description: "Verifying credentials with UAE Student Registry...",
+      description: "Verifying credentials with MasarUAE...",
       fuseColor: "#10b981",
       duration: 2500,
     });
 
-    const current = getStudentProfile();
-    if (loginEmailOrPhone.includes("@")) {
-      saveStudentProfile({ ...current, email: loginEmailOrPhone });
-    }
+    try {
+      if (loginEmailOrPhone.includes("@") && loginPassword) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: loginEmailOrPhone.trim(),
+          password: loginPassword,
+        });
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("masar_is_logged_in", "true");
-      window.dispatchEvent(new Event("masar_auth_changed"));
-    }
+        if (error) {
+          // If login fails, inform the user clearly
+          console.warn("Supabase Auth notice:", error.message);
+          showToast({
+            title: "Authentication Notice",
+            description: error.message || "Invalid login credentials. Please verify your email and password.",
+            fuseColor: "#ef4444",
+            duration: 4000,
+          });
+          setLoginSubmitting(false);
+          return;
+        }
 
-    setTimeout(() => {
+        if (data?.user) {
+          const current = getStudentProfile();
+          saveStudentProfile({
+            ...current,
+            id: data.user.id,
+            email: data.user.email || loginEmailOrPhone,
+          });
+        }
+      } else {
+        const current = getStudentProfile();
+        if (loginEmailOrPhone.includes("@")) {
+          saveStudentProfile({ ...current, email: loginEmailOrPhone });
+        }
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("masar_is_logged_in", "true");
+        window.dispatchEvent(new Event("masar_auth_changed"));
+      }
+
+      const currentProfile = getStudentProfile();
       showToast({
         title: "Welcome Back!",
-        description: `Signed in as ${current.firstName || "Rashid"} ${current.lastName || "Al-Maktoum"}.`,
+        description: `Signed in as ${currentProfile.firstName || "Student"} ${currentProfile.lastName || ""}.`,
         fuseColor: "#10b981",
         duration: 3500,
       });
+
       const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
       const redirect = params?.get("redirect") || "/dashboard";
       router.push(redirect);
-    }, 1100);
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      showToast({
+        title: "Sign In Error",
+        description: err.message || "Failed to sign in. Please try again.",
+        fuseColor: "#ef4444",
+        duration: 3500,
+      });
+    } finally {
+      setLoginSubmitting(false);
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signupEmail || !signupFullName) {
       showToast({
@@ -115,53 +157,111 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
       return;
     }
 
+    if (!signupPassword || signupPassword.length < 6) {
+      showToast({
+        title: "Weak Password",
+        description: "Password should be at least 6 characters.",
+        fuseColor: "#f59e0b",
+        duration: 3000,
+      });
+      return;
+    }
+
     setSignupSubmitting(true);
     showToast({
       title: "Creating Student Account",
-      description: "Setting up your UAE student profile and past paper access...",
+      description: "Setting up your UAE student profile...",
       fuseColor: "#10b981",
       duration: 3000,
     });
 
-    const current = getStudentProfile();
-    const parts = signupFullName.trim().split(" ");
-    saveStudentProfile({
-      ...current,
-      firstName: parts[0] || "Rashid",
-      lastName: parts.slice(1).join(" ") || "Al-Maktoum",
-      email: signupEmail,
-      phone: signupPhone ? `+971 ${signupPhone}` : current.phone,
-    });
+    try {
+      const parts = signupFullName.trim().split(" ");
+      const firstName = parts[0] || "Rashid";
+      const lastName = parts.slice(1).join(" ") || "Al-Maktoum";
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("masar_is_logged_in", "true");
-      window.dispatchEvent(new Event("masar_auth_changed"));
-    }
+      const { data, error } = await supabase.auth.signUp({
+        email: signupEmail.trim(),
+        password: signupPassword,
+        options: {
+          data: {
+            full_name: signupFullName.trim(),
+            phone: signupPhone ? `+971 ${signupPhone}` : undefined,
+          },
+        },
+      });
 
-    setTimeout(() => {
+      if (error) {
+        console.warn("Supabase SignUp notice:", error.message);
+        showToast({
+          title: "Sign Up Notice",
+          description: error.message || "Could not complete account creation. Please try again.",
+          fuseColor: "#ef4444",
+          duration: 4000,
+        });
+        setSignupSubmitting(false);
+        return;
+      }
+
+      const current = getStudentProfile();
+      saveStudentProfile({
+        ...current,
+        id: data?.user?.id || current.id,
+        firstName,
+        lastName,
+        email: signupEmail,
+        phone: signupPhone ? `+971 ${signupPhone}` : current.phone,
+      });
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("masar_is_logged_in", "true");
+        window.dispatchEvent(new Event("masar_auth_changed"));
+      }
+
       showToast({
         title: "Account Created!",
-        description: `Welcome to MasarUAE, ${parts[0] || "Student"}!`,
+        description: `Welcome to MasarUAE, ${firstName}!`,
         fuseColor: "#10b981",
         duration: 3500,
       });
+
       const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
       const redirect = params?.get("redirect") || "/dashboard";
       router.push(redirect);
-    }, 1200);
+    } catch (err: any) {
+      console.error("SignUp error:", err);
+      showToast({
+        title: "Account Error",
+        description: err.message || "Could not complete registration.",
+        fuseColor: "#ef4444",
+        duration: 3500,
+      });
+    } finally {
+      setSignupSubmitting(false);
+    }
   };
 
-  const handlePasswordRecovery = (e: React.FormEvent) => {
+  const handlePasswordRecovery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recoveryEmail) return;
-    setRecoveryOpen(false);
-    showToast({
-      title: "Password Reset Link Sent",
-      description: `Check your inbox at ${recoveryEmail} for instructions.`,
-      fuseColor: "#10b981",
-      duration: 4000,
-    });
-    setRecoveryEmail("");
+    try {
+      await supabase.auth.resetPasswordForEmail(recoveryEmail.trim());
+      setRecoveryOpen(false);
+      showToast({
+        title: "Password Reset Link Sent",
+        description: `Check your inbox at ${recoveryEmail} for instructions.`,
+        fuseColor: "#10b981",
+        duration: 4000,
+      });
+      setRecoveryEmail("");
+    } catch (err: any) {
+      showToast({
+        title: "Recovery Notice",
+        description: err.message || "Failed to send reset instructions.",
+        fuseColor: "#ef4444",
+        duration: 3500,
+      });
+    }
   };
 
   return (

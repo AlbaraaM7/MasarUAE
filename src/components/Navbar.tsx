@@ -30,6 +30,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { getStudentProfile, StudentProfile } from "@/lib/studentProfile";
 import { UpdateProfileModal } from "@/components/UpdateProfileModal";
 import TechText from "@/components/reactbits/TechText";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -73,7 +74,12 @@ export function Navbar() {
     };
   }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Sign out notice:", e);
+    }
     if (typeof window !== "undefined") {
       localStorage.removeItem("masar_is_logged_in");
       window.dispatchEvent(new Event("masar_auth_changed"));

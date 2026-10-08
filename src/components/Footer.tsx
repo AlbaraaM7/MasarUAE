@@ -86,23 +86,29 @@ export function Footer() {
         <div className="pt-8 border-t border-slate-200 dark:border-[#323232] flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-zinc-500">
           <p>© {new Date().getFullYear()} Masar UAE. All rights reserved.</p>
           <div className="flex flex-wrap gap-4 sm:gap-6 mt-4 sm:mt-0">
-            <button
-              onClick={() => setActiveModal("privacy")}
+            <Link
+              href="/privacy"
               className="hover:text-slate-700 dark:hover:text-zinc-300 hover:underline cursor-pointer transition-colors text-xs font-medium"
             >
               Privacy Policy
-            </button>
-            <button
-              onClick={() => setActiveModal("terms")}
+            </Link>
+            <Link
+              href="/terms"
               className="hover:text-slate-700 dark:hover:text-zinc-300 hover:underline cursor-pointer transition-colors text-xs font-medium"
             >
               Terms of Service
-            </button>
+            </Link>
+            <Link
+              href="/disclaimer"
+              className="hover:text-slate-700 dark:hover:text-zinc-300 hover:underline cursor-pointer transition-colors text-xs font-medium"
+            >
+              Disclaimer
+            </Link>
             <button
               onClick={() => setActiveModal("support")}
               className="hover:text-slate-700 dark:hover:text-zinc-300 hover:underline cursor-pointer transition-colors text-xs font-medium"
             >
-              Contact Student Support
+              Contact Support
             </button>
           </div>
         </div>
