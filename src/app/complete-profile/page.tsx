@@ -5,40 +5,34 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   GraduationCap, 
-  School, 
-  Phone, 
-  Award, 
-  MapPin, 
-  BookOpen, 
-  Sparkles, 
   ArrowRight, 
   CheckCircle2, 
-  User, 
-  Mail,
   ShieldCheck
 } from "lucide-react";
 import { getStudentProfile, saveStudentProfile, StudentProfile } from "@/lib/studentProfile";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
+import TechText from "@/components/reactbits/TechText";
+import GlideSelect, { GlideSelectOption } from "@/components/reactbits/GlideSelect";
 
-const UAE_EMIRATES = [
-  "Dubai",
-  "Abu Dhabi",
-  "Sharjah",
-  "Ajman",
-  "Ras Al Khaimah",
-  "Fujairah",
-  "Umm Al Quwain",
+const EMIRATE_OPTIONS: GlideSelectOption[] = [
+  { value: "Dubai", label: "Dubai", tag: "DXB" },
+  { value: "Abu Dhabi", label: "Abu Dhabi", tag: "AUH" },
+  { value: "Sharjah", label: "Sharjah", tag: "SHJ" },
+  { value: "Ajman", label: "Ajman", tag: "AJM" },
+  { value: "Ras Al Khaimah", label: "Ras Al Khaimah", tag: "RAK" },
+  { value: "Fujairah", label: "Fujairah", tag: "FUJ" },
+  { value: "Umm Al Quwain", label: "Umm Al Quwain", tag: "UAQ" },
 ];
 
-const CURRICULUM_OPTIONS = [
-  "British Curriculum (IGCSE / A-Level)",
-  "American Curriculum (High School Diploma / AP)",
-  "International Baccalaureate (IB Diploma)",
-  "UAE Ministry of Education (MOE / General & Advanced)",
-  "CBSE / Indian Board",
-  "SABIS Curriculum",
-  "Other International Curriculum",
+const CURRICULUM_OPTIONS: GlideSelectOption[] = [
+  { value: "British Curriculum (IGCSE / A-Level)", label: "British (IGCSE / A-Level)", tag: "A-Level" },
+  { value: "American Curriculum (High School Diploma / AP)", label: "American Diploma (AP)", tag: "AP" },
+  { value: "International Baccalaureate (IB Diploma)", label: "IB Diploma Programme", tag: "IB" },
+  { value: "UAE Ministry of Education (MOE / General & Advanced)", label: "UAE MOE Curriculum", tag: "MOE" },
+  { value: "CBSE / Indian Board", label: "CBSE / Indian Board", tag: "CBSE" },
+  { value: "SABIS Curriculum", label: "SABIS Curriculum", tag: "SABIS" },
+  { value: "Other International Curriculum", label: "Other International", tag: "Other" },
 ];
 
 export default function CompleteProfilePage() {
@@ -50,12 +44,13 @@ export default function CompleteProfilePage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState("2007-04-15");
   const [school, setSchool] = useState("");
-  const [curriculum, setCurriculum] = useState(CURRICULUM_OPTIONS[0]);
+  const [curriculum, setCurriculum] = useState(CURRICULUM_OPTIONS[0].value);
   const [grades, setGrades] = useState("");
   const [gpa, setGpa] = useState("3.8");
   const [location, setLocation] = useState("Dubai");
-  const [targetMajor, setTargetMajor] = useState("Computer Science & AI");
+  const [targetMajor, setTargetMajor] = useState("Computer Science");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -64,7 +59,8 @@ export default function CompleteProfilePage() {
     setFirstName(current.firstName || "");
     setLastName(current.lastName || "");
     setEmail(current.email || "");
-    setPhone(current.phone || "+971 50 ");
+    setPhone(current.phone && current.phone !== "+971 50 123 4567" ? current.phone : "+971 50 ");
+    if (current.dob) setDob(current.dob);
     setSchool(current.school && current.school !== "Dubai College" ? current.school : "");
     if (current.curriculum) setCurriculum(current.curriculum);
     if (current.grades && !current.grades.includes("A*AA")) setGrades(current.grades);
@@ -72,7 +68,7 @@ export default function CompleteProfilePage() {
     if (current.location) setLocation(current.location);
     if (current.targetMajor) setTargetMajor(current.targetMajor);
 
-    // Also try to read current Supabase user if available
+    // Also check current Supabase user session
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) {
         const meta = data.user.user_metadata || {};
@@ -109,6 +105,7 @@ export default function CompleteProfilePage() {
         lastName: cleanLastName,
         email: email || profile.email,
         phone: cleanPhone,
+        dob,
         school: cleanSchool,
         curriculum,
         grades: cleanGrades,
@@ -172,17 +169,32 @@ export default function CompleteProfilePage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black py-10 px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center font-sans">
       <div className="w-full max-w-2xl space-y-6">
-        {/* Brand Header & Step Progress */}
-        <div className="text-center space-y-3">
-          <Link href="/" className="inline-flex items-center space-x-2 text-zinc-900 dark:text-white">
-            <span className="text-2xl font-black tracking-tight">مسار Masar</span>
-            <span className="text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              UAE
-            </span>
+        {/* Brand Header with ReactBits TechText Logo (No Arabic, Pure MASARUAE) */}
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <Link href="/" className="inline-flex items-center space-x-2.5 group shrink-0" aria-label="MASARUAE Home">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-600 to-emerald-500 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-200 shrink-0">
+              <GraduationCap className="w-5 h-5 text-white" />
+            </div>
+            <div className="relative h-9 sm:h-10 w-32 sm:w-36 flex items-center select-none overflow-visible">
+              <TechText
+                text="MASARUAE"
+                fontSize={22}
+                fontWeight={800}
+                reach={60}
+                dashLength={3}
+                dashGap={2}
+                specks={12}
+                reveal="letter"
+                labels={false}
+                draggable={true}
+                sweep={true}
+                speed={0.8}
+              />
+            </div>
           </Link>
 
           {/* Progress Indicator */}
-          <div className="flex items-center justify-center space-x-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center justify-center space-x-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 pt-1">
             <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px]">
               ✓
             </span>
@@ -204,146 +216,180 @@ export default function CompleteProfilePage() {
 
         {/* Card Form */}
         <div className="bg-white dark:bg-zinc-950 p-6 sm:p-8 rounded-3xl border border-zinc-200/90 dark:border-white/10 shadow-xl space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* User Identity Confirmation (Readonly / Prefilled) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-white/5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* First & Last Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mb-1 flex items-center space-x-1.5">
-                  <User className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Full Name</span>
-                </label>
-                <div className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                  {firstName} {lastName}
-                </div>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mb-1 flex items-center space-x-1.5">
-                  <Mail className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Registered Email</span>
-                </label>
-                <div className="text-xs sm:text-sm font-mono text-zinc-800 dark:text-zinc-200 truncate">
-                  {email || "student@school.ae"}
-                </div>
-              </div>
-            </div>
-
-            {/* School / Institution & Phone Number */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 flex items-center space-x-1.5">
-                  <School className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span>School / Institution *</span>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  First Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dubai College, Gems Wellington"
-                  value={school}
-                  onChange={(e) => setSchool(e.target.value)}
-                  className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="e.g. Mohammed"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 flex items-center space-x-1.5">
-                  <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Phone / WhatsApp *</span>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="e.g. Salem"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Email Address */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. mohammed.salem@gmail.com"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
+              />
+            </div>
+
+            {/* Phone / WhatsApp & Date of Birth */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  Phone / WhatsApp *
                 </label>
                 <input
                   type="tel"
                   required
-                  placeholder="+971 50 123 4567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors font-mono"
+                  placeholder="+971 50 123 4567"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  Date of Birth (DOB) *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* Curriculum Selection */}
-            <div>
-              <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 flex items-center space-x-1.5">
-                <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>Academic Curriculum *</span>
-              </label>
-              <select
-                value={curriculum}
-                onChange={(e) => setCurriculum(e.target.value)}
-                className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors cursor-pointer"
-              >
-                {CURRICULUM_OPTIONS.map((c) => (
-                  <option key={c} value={c} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">
-                    {c}
-                  </option>
-                ))}
-              </select>
+            {/* Location / Emirate & Academic Curriculum (ReactBits GlideSelect) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  Location / Emirate *
+                </label>
+                <GlideSelect
+                  options={EMIRATE_OPTIONS}
+                  value={location}
+                  onChange={(val) => setLocation(val)}
+                  ariaLabel="Location / Emirate"
+                  showTags
+                  size="md"
+                  radius={12}
+                  menuWidth="100%"
+                  placement="bottom"
+                  align="left"
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  Academic Curriculum *
+                </label>
+                <GlideSelect
+                  options={CURRICULUM_OPTIONS}
+                  value={curriculum}
+                  onChange={(val) => setCurriculum(val)}
+                  ariaLabel="Academic Curriculum"
+                  showTags
+                  size="md"
+                  radius={12}
+                  menuWidth="100%"
+                  placement="bottom"
+                  align="left"
+                  className="w-full"
+                />
+              </div>
             </div>
 
-            {/* Grades & GPA */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Academic Grades & GPA */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 flex items-center space-x-1.5">
-                  <GraduationCap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Current / Predicted Grades *</span>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  Grades / Syllabus *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. A*AA, 95%+, IB 38, or 4 APs"
                   value={grades}
                   onChange={(e) => setGrades(e.target.value)}
-                  className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                  placeholder="e.g. A*AA, IB 38, or 92%"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 flex items-center space-x-1.5">
-                  <Award className="w-4 h-4 text-amber-500" />
-                  <span>Cumulative GPA (out of 4.0) *</span>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  GPA (out of 4.0) *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 3.9"
                   value={gpa}
                   onChange={(e) => setGpa(e.target.value)}
-                  className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                  placeholder="e.g. 3.9"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* Emirate Location & Target Major */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* School & Target Major */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 flex items-center space-x-1.5">
-                  <MapPin className="w-4 h-4 text-rose-500" />
-                  <span>Emirate / City in UAE *</span>
-                </label>
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors cursor-pointer"
-                >
-                  {UAE_EMIRATES.map((emirate) => (
-                    <option key={emirate} value={emirate} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">
-                      {emirate}, UAE
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 flex items-center space-x-1.5">
-                  <Sparkles className="w-4 h-4 text-purple-500" />
-                  <span>Target Major / Career Goal *</span>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  School / High School
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Computer Science, Medicine, Business"
+                  value={school}
+                  onChange={(e) => setSchool(e.target.value)}
+                  placeholder="e.g. Dubai College"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1.5">
+                  Target Major
+                </label>
+                <input
+                  type="text"
                   value={targetMajor}
                   onChange={(e) => setTargetMajor(e.target.value)}
-                  className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-white/10 px-4 py-3 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:border-blue-600 dark:focus:border-emerald-400 transition-colors"
+                  placeholder="e.g. Computer Science"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
                 />
               </div>
             </div>

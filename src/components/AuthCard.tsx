@@ -89,11 +89,15 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
         if (error) {
           // If login fails, inform the user clearly
           console.warn("Supabase Auth notice:", error.message);
+          let userMsg = error.message || "Invalid login credentials. Please verify your email and password.";
+          if (error.message.toLowerCase().includes("email not confirmed")) {
+            userMsg = "Your email has not been confirmed yet. Please verify your email or try logging in again.";
+          }
           showToast({
             title: "Authentication Notice",
-            description: error.message || "Invalid login credentials. Please verify your email and password.",
+            description: userMsg,
             fuseColor: "#ef4444",
-            duration: 4000,
+            duration: 4500,
           });
           setLoginSubmitting(false);
           return;
@@ -264,11 +268,15 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
 
       if (error) {
         console.warn("Supabase SignUp notice:", error.message);
+        let userMsg = error.message || "Could not complete account creation. Please try again.";
+        if (error.message.toLowerCase().includes("rate limit")) {
+          userMsg = "Email rate limit exceeded (Supabase free limit is 3-4 emails/hr). Please try logging in directly if you already registered.";
+        }
         showToast({
           title: "Sign Up Notice",
-          description: error.message || "Could not complete account creation. Please try again.",
+          description: userMsg,
           fuseColor: "#ef4444",
-          duration: 4000,
+          duration: 4500,
         });
         setSignupSubmitting(false);
         return;
@@ -327,7 +335,25 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
     e.preventDefault();
     if (!recoveryEmail) return;
     try {
-      await supabase.auth.resetPasswordForEmail(recoveryEmail.trim());
+      const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail.trim(), {
+        redirectTo: typeof window !== "undefined" ? `${window.location.origin}/login` : undefined,
+      });
+
+      if (error) {
+        console.warn("Reset password error:", error.message);
+        let userMsg = error.message;
+        if (error.message.toLowerCase().includes("rate limit")) {
+          userMsg = "Email rate limit exceeded by Supabase. Please wait a few minutes before requesting another reset email.";
+        }
+        showToast({
+          title: "Password Recovery",
+          description: userMsg,
+          fuseColor: "#ef4444",
+          duration: 5000,
+        });
+        return;
+      }
+
       setRecoveryOpen(false);
       showToast({
         title: "Password Reset Link Sent",

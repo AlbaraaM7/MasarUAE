@@ -4,22 +4,17 @@ import { useState, useEffect } from "react";
 import { 
   X, 
   User, 
-  Mail, 
-  Calendar, 
-  MapPin, 
-  GraduationCap, 
-  Award, 
-  Check, 
-  School
+  Check 
 } from "lucide-react";
 import { 
   StudentProfile, 
   getStudentProfile, 
   saveStudentProfile 
 } from "@/lib/studentProfile";
+import { supabase } from "@/lib/supabase";
 import GlideSelect, { GlideSelectOption } from "@/components/reactbits/GlideSelect";
 
-const EMIRATE_OPTIONS: GlideSelectOption[] = [
+export const EMIRATE_OPTIONS: GlideSelectOption[] = [
   { value: "Dubai", label: "Dubai", tag: "DXB" },
   { value: "Abu Dhabi", label: "Abu Dhabi", tag: "AUH" },
   { value: "Sharjah", label: "Sharjah", tag: "SHJ" },
@@ -27,6 +22,16 @@ const EMIRATE_OPTIONS: GlideSelectOption[] = [
   { value: "Ras Al Khaimah", label: "Ras Al Khaimah", tag: "RAK" },
   { value: "Fujairah", label: "Fujairah", tag: "FUJ" },
   { value: "Umm Al Quwain", label: "Umm Al Quwain", tag: "UAQ" },
+];
+
+export const CURRICULUM_OPTIONS: GlideSelectOption[] = [
+  { value: "British Curriculum (IGCSE / A-Level)", label: "British (IGCSE / A-Level)", tag: "A-Level" },
+  { value: "American Curriculum (High School Diploma / AP)", label: "American Diploma (AP)", tag: "AP" },
+  { value: "International Baccalaureate (IB Diploma)", label: "IB Diploma Programme", tag: "IB" },
+  { value: "UAE Ministry of Education (MOE / General & Advanced)", label: "UAE MOE Curriculum", tag: "MOE" },
+  { value: "CBSE / Indian Board", label: "CBSE / Indian Board", tag: "CBSE" },
+  { value: "SABIS Curriculum", label: "SABIS Curriculum", tag: "SABIS" },
+  { value: "Other International Curriculum", label: "Other International", tag: "Other" },
 ];
 
 interface UpdateProfileModalProps {
@@ -55,6 +60,30 @@ export function UpdateProfileModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveStudentProfile(formData);
+
+    // Sync to Supabase in background
+    try {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) {
+          supabase.from("profiles").upsert({
+            id: data.user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+            email: formData.email || data.user.email,
+            phone: formData.phone,
+            school: formData.school,
+            curriculum: formData.curriculum,
+            grade_level: formData.grades,
+            location: `${formData.location}, UAE`,
+            target_major: formData.targetMajor,
+          });
+        }
+      });
+    } catch (e) {
+      console.warn("Could not sync profile to database:", e);
+    }
+
     setIsSaved(true);
     if (onProfileUpdated) {
       onProfileUpdated(formData);
@@ -84,7 +113,7 @@ export function UpdateProfileModal({
                 Update Student Profile
               </h3>
               <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Personal details & academic admissions benchmarks
+                Personal details &amp; academic admissions benchmarks
               </p>
             </div>
           </div>
@@ -97,7 +126,7 @@ export function UpdateProfileModal({
           </button>
         </div>
 
-        {/* Form Body */}
+        {/* Form Body - Clean labels without icons */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -105,16 +134,14 @@ export function UpdateProfileModal({
               <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
                 First Name *
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  placeholder="e.g. Rashid"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                placeholder="e.g. Rashid"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
+              />
             </div>
 
             <div>
@@ -134,26 +161,38 @@ export function UpdateProfileModal({
 
           {/* Email Address */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center space-x-1.5">
-              <Mail className="w-3.5 h-3.5 text-[#0D7377] dark:text-[#14FFEC]" />
-              <span>Email Address *</span>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+              Email Address *
             </label>
             <input
               type="email"
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="e.g. rashid.alnuaimi@example.ae"
+              placeholder="e.g. student@school.ae"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
             />
           </div>
 
-          {/* Date of Birth & Location */}
+          {/* Phone / WhatsApp & Date of Birth */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center space-x-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#0D7377] dark:text-[#14FFEC]" />
-                <span>Date of Birth (DOB) *</span>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                Phone / WhatsApp *
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.phone || ""}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+971 50 123 4567"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                Date of Birth (DOB) *
               </label>
               <input
                 type="date"
@@ -163,11 +202,13 @@ export function UpdateProfileModal({
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-[#424242] bg-slate-50 dark:bg-[#1f1f1f] focus:bg-white dark:focus:bg-[#1f1f1f] focus:border-[#0D7377] dark:focus:border-[#14FFEC] focus:ring-2 focus:ring-[#14FFEC]/20 text-xs font-medium text-slate-900 dark:text-white outline-none transition-all"
               />
             </div>
+          </div>
 
+          {/* Location / Emirate & Academic Curriculum */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center space-x-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#0D7377] dark:text-[#14FFEC]" />
-                <span>Location / Emirate *</span>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                Location / Emirate *
               </label>
               <GlideSelect
                 options={EMIRATE_OPTIONS}
@@ -183,14 +224,32 @@ export function UpdateProfileModal({
                 className="w-full"
               />
             </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                Academic Curriculum *
+              </label>
+              <GlideSelect
+                options={CURRICULUM_OPTIONS}
+                value={formData.curriculum || CURRICULUM_OPTIONS[0].value}
+                onChange={(val) => setFormData({ ...formData, curriculum: val })}
+                ariaLabel="Academic Curriculum"
+                showTags
+                size="md"
+                radius={12}
+                menuWidth="100%"
+                placement="bottom"
+                align="left"
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Academic Grades & GPA */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center space-x-1.5">
-                <GraduationCap className="w-3.5 h-3.5 text-[#0D7377] dark:text-[#14FFEC]" />
-                <span>Grades / Syllabus *</span>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                Grades / Syllabus *
               </label>
               <input
                 type="text"
@@ -203,9 +262,8 @@ export function UpdateProfileModal({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center space-x-1.5">
-                <Award className="w-3.5 h-3.5 text-[#0D7377] dark:text-[#14FFEC]" />
-                <span>GPA (out of 4.0) *</span>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                GPA (out of 4.0) *
               </label>
               <input
                 type="text"
@@ -221,9 +279,8 @@ export function UpdateProfileModal({
           {/* School & Target Major */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center space-x-1.5">
-                <School className="w-3.5 h-3.5 text-[#0D7377] dark:text-[#14FFEC]" />
-                <span>School / High School</span>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                School / High School
               </label>
               <input
                 type="text"
@@ -259,12 +316,13 @@ export function UpdateProfileModal({
             </button>
             <button
               type="submit"
-              className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-[#14FFEC] hover:bg-[#14FFEC]/90 text-[#212121] font-bold text-xs shadow-md shadow-[#14FFEC]/20 transition-all hover:scale-[1.02] cursor-pointer"
+              disabled={isSaved}
+              className="inline-flex items-center space-x-1.5 px-5 py-2.5 rounded-xl bg-[#00FFDD] hover:bg-[#14FFEC] text-slate-950 text-xs font-extrabold shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-75"
             >
               {isSaved ? (
                 <>
-                  <Check className="w-4 h-4 text-[#212121]" />
-                  <span>Profile Saved!</span>
+                  <Check className="w-4 h-4 text-slate-950" />
+                  <span>Saved!</span>
                 </>
               ) : (
                 <span>Save Changes</span>
