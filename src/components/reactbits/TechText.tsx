@@ -305,7 +305,7 @@ export default function TechText({
           },
         };
         const kept = previous[glyphs.length];
-        const glyphColor = (s.text === "MasarUAE" || s.text === "masarUAE") && i >= 5 ? s.accentColor : s.color;
+        const glyphColor = (s.text === "MasarUAE" || s.text === "masarUAE" || s.text === "MASARUAE") && i >= 5 ? s.accentColor : s.color;
         glyphs.push({
           ...base,
           offset: kept?.char === char ? kept.offset : { x: 0, y: 0 },

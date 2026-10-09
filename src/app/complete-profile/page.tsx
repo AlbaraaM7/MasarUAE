@@ -171,17 +171,17 @@ export default function CompleteProfilePage() {
       <div className="w-full max-w-2xl space-y-6">
         {/* Brand Header with ReactBits TechText Logo (No Arabic, Pure MASARUAE) */}
         <div className="text-center space-y-3 flex flex-col items-center">
-          <Link href="/" className="inline-flex items-center space-x-2.5 group shrink-0" aria-label="MASARUAE Home">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-600 to-emerald-500 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-200 shrink-0">
-              <GraduationCap className="w-5 h-5 text-white" />
+          <Link href="/" className="inline-flex items-center space-x-3 sm:space-x-3.5 group shrink-0" aria-label="MASARUAE Home">
+            <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0">
+              <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
-            <div className="relative h-9 sm:h-10 w-32 sm:w-36 flex items-center select-none overflow-visible">
+            <div className="relative h-11 sm:h-13 w-44 sm:w-52 flex items-center select-none overflow-visible">
               <TechText
                 text="MASARUAE"
-                fontSize={22}
+                fontSize={30}
                 fontWeight={800}
-                reach={60}
-                dashLength={3}
+                reach={70}
+                dashLength={3.5}
                 dashGap={2}
                 specks={12}
                 reveal="letter"
