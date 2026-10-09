@@ -40,7 +40,8 @@ export function Navbar() {
     pathname === "/login" ||
     pathname === "/signup" ||
     pathname === "/signin" ||
-    pathname === "/register"
+    pathname === "/register" ||
+    pathname === "/complete-profile"
   ) {
     return null;
   }

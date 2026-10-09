@@ -308,7 +308,7 @@ export default function AuthCard({ initialMode = "login" }: AuthCardProps) {
       });
 
       const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-      const redirect = params?.get("redirect") || "/dashboard";
+      const redirect = params?.get("redirect") || "/complete-profile";
       router.push(redirect);
     } catch (err: any) {
       console.error("SignUp error:", err);

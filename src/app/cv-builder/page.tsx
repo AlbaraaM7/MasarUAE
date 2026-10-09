@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { useToast } from "@/components/ToastProvider";
+import { getStudentProfile } from "@/lib/studentProfile";
 
 interface VolunteeringItem {
   id: string;
@@ -49,6 +50,42 @@ export default function CVBuilderPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const cvPreviewRef = useRef<HTMLDivElement>(null);
   const cvExportRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize CV with authenticated student profile
+  useEffect(() => {
+    const syncProfile = () => {
+      const p = getStudentProfile();
+      const fName = `${p.firstName || ""} ${p.lastName || ""}`.trim();
+      if (fName) {
+        setStudentName(fName);
+      }
+      if (p.email) {
+        setEmail(p.email);
+      }
+      if (p.phone) {
+        setPhone(p.phone);
+      }
+      if (p.location) {
+        const formattedLoc = p.location.includes("United Arab Emirates") || p.location.includes("UAE")
+          ? p.location
+          : `${p.location}, United Arab Emirates`;
+        setLocation(formattedLoc);
+      }
+      if (p.school && p.school !== "Dubai College") {
+        setSchool(p.school);
+      }
+      if (p.curriculum) {
+        setCurriculum(p.curriculum);
+      }
+      if (p.targetMajor) {
+        setTargetMajor(p.targetMajor);
+      }
+    };
+
+    syncProfile();
+    window.addEventListener("masar_student_profile_updated", syncProfile);
+    return () => window.removeEventListener("masar_student_profile_updated", syncProfile);
+  }, []);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -269,12 +306,15 @@ export default function CVBuilderPage() {
 </head>
 <body>
 <div class="WordSection1">
-  <!-- Header -->
-  <h1>${studentName}</h1>
-  <div class="contact">
-    ${location} &bull; ${email} &bull; ${phone}
-  </div>
-  <div class="header-divider"></div>
+  <table width="100%" cellpadding="22" cellspacing="0" style="border: 1.5pt solid #cbd5e1; border-radius: 12pt; background-color: #ffffff;">
+    <tr>
+      <td>
+        <!-- Header -->
+        <h1>${studentName}</h1>
+        <div class="contact">
+          ${location} &bull; ${email} &bull; ${phone}
+        </div>
+        <div class="header-divider"></div>
 
   <!-- Academic Profile & Goal -->
   <div class="section-title">Academic Profile &amp; Goal</div>
@@ -346,6 +386,9 @@ export default function CVBuilderPage() {
       </td>
       <td align="right" style="font-size: 8.5pt; font-weight: bold; color: #0D7377;">
         Powered by Masar UAE
+      </td>
+    </tr>
+  </table>
       </td>
     </tr>
   </table>
@@ -446,20 +489,22 @@ export default function CVBuilderPage() {
           });
           const pdfWidth = 210;
           const pdfHeight = 297;
-          const contentHeight = (canvas.height * pdfWidth) / canvas.width;
+          const margin = 6;
+          const printWidth = pdfWidth - margin * 2;
+          const printHeight = (canvas.height * printWidth) / canvas.width;
 
-          if (contentHeight <= pdfHeight) {
-            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, contentHeight, undefined, "FAST");
+          if (printHeight <= pdfHeight - margin * 2) {
+            pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight, undefined, "FAST");
           } else {
-            let heightLeft = contentHeight;
-            let position = 0;
-            pdf.addImage(imgData, "PNG", 0, position, pdfWidth, contentHeight, undefined, "FAST");
-            heightLeft -= pdfHeight;
+            let heightLeft = printHeight;
+            let position = margin;
+            pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight, undefined, "FAST");
+            heightLeft -= (pdfHeight - margin * 2);
             while (heightLeft > 0) {
-              position = heightLeft - contentHeight;
+              position = heightLeft - printHeight + margin;
               pdf.addPage();
-              pdf.addImage(imgData, "PNG", 0, position, pdfWidth, contentHeight, undefined, "FAST");
-              heightLeft -= pdfHeight;
+              pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight, undefined, "FAST");
+              heightLeft -= (pdfHeight - margin * 2);
             }
           }
           pdf.save(`${baseFilename}.pdf`);
@@ -812,7 +857,7 @@ export default function CVBuilderPage() {
           <div 
             ref={cvPreviewRef}
             id="cv-document-preview"
-            className="sticky top-20 bg-white text-slate-900 p-8 rounded-2xl border border-slate-300 dark:border-[#424242] shadow-xl space-y-6 print:shadow-none print:border-none print:p-0"
+            className="sticky top-20 bg-white text-slate-900 p-8 rounded-2xl border border-slate-300 dark:border-[#424242] shadow-xl space-y-6 print:shadow-none print:border print:border-slate-300 print:rounded-2xl print:p-8"
           >
             {/* CV Header */}
             <div className="border-b-2 border-slate-800 pb-4 text-center space-y-1">
@@ -922,103 +967,117 @@ export default function CVBuilderPage() {
           zIndex: -9999,
           pointerEvents: "none",
           backgroundColor: "#ffffff",
-          color: "#0f172a",
+          padding: "20px",
           boxSizing: "border-box",
         }}
-        className="bg-white text-slate-900 p-12 space-y-6 font-sans select-none"
+        className="select-none"
       >
-        {/* CV Header */}
-        <div className="border-b-2 border-slate-800 pb-4 text-center space-y-1.5">
-          <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-wide uppercase">
-            {studentName}
-          </h1>
-          <div className="text-xs text-slate-600 flex flex-wrap items-center justify-center gap-2">
-            <span>{location}</span>
-            <span>•</span>
-            <span>{email}</span>
-            <span>•</span>
-            <span>{phone}</span>
+        {/* Rectangular Box Card matching live preview */}
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            color: "#0f172a",
+            border: "1.5px solid #cbd5e1",
+            borderRadius: "16px",
+            padding: "36px 32px",
+            boxSizing: "border-box",
+            boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+          }}
+          className="space-y-6 font-sans"
+        >
+          {/* CV Header */}
+          <div className="border-b-2 border-slate-800 pb-4 text-center space-y-1.5">
+            <h1 className="text-2xl font-serif font-bold text-slate-900 tracking-wide uppercase">
+              {studentName}
+            </h1>
+            <div className="text-xs text-slate-600 flex flex-wrap items-center justify-center gap-2">
+              <span>{location}</span>
+              <span>•</span>
+              <span>{email}</span>
+              <span>•</span>
+              <span>{phone}</span>
+            </div>
           </div>
-        </div>
 
-        {/* Academic Objective */}
-        <div className="space-y-1.5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
-            Academic Profile &amp; Goal
-          </h2>
-          <p className="text-xs text-slate-700 leading-relaxed">
-            Dedicated student at <span className="font-semibold">{school}</span> pursuing the <span className="font-semibold">{curriculum}</span>. Aspiring to pursue undergraduate studies in <span className="font-semibold">{targetMajor}</span>. Strong commitment to community service with <span className="font-semibold text-[#0D7377]">{totalVolunteerHours} verified volunteer hours</span> across UAE charity and youth initiatives.
-          </p>
-        </div>
-
-        {/* Volunteering & Community Engagement */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-              Community Service &amp; Civic Volunteering
+          {/* Academic Objective */}
+          <div className="space-y-1.5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
+              Academic Profile &amp; Goal
             </h2>
-            <span className="text-[10px] font-bold text-[#0D7377] bg-[#0D7377]/10 border border-[#0D7377]/20 px-2.5 py-0.5 rounded font-sans uppercase">
-              UAE Verified: {totalVolunteerHours} Hours
-            </span>
+            <p className="text-xs text-slate-700 leading-relaxed">
+              Dedicated student at <span className="font-semibold">{school}</span> pursuing the <span className="font-semibold">{curriculum}</span>. Aspiring to pursue undergraduate studies in <span className="font-semibold">{targetMajor}</span>. Strong commitment to community service with <span className="font-semibold text-[#0D7377]">{totalVolunteerHours} verified volunteer hours</span> across UAE charity and youth initiatives.
+            </p>
           </div>
 
+          {/* Volunteering & Community Engagement */}
           <div className="space-y-3">
-            {volunteering.map((v) => (
-              <div key={v.id} className="text-xs space-y-0.5">
-                <div className="flex items-center justify-between font-bold text-slate-900">
-                  <span className="text-xs font-bold">{v.organization}</span>
-                  <span className="text-slate-500 font-mono text-[11px] font-medium">{v.hours} Hours</span>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                Community Service &amp; Civic Volunteering
+              </h2>
+              <span className="text-[10px] font-bold text-[#0D7377] bg-[#0D7377]/10 border border-[#0D7377]/20 px-2.5 py-0.5 rounded font-sans uppercase">
+                UAE Verified: {totalVolunteerHours} Hours
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {volunteering.map((v) => (
+                <div key={v.id} className="text-xs space-y-0.5">
+                  <div className="flex items-center justify-between font-bold text-slate-900">
+                    <span className="text-xs font-bold">{v.organization}</span>
+                    <span className="text-slate-500 font-mono text-[11px] font-medium">{v.hours} Hours</span>
+                  </div>
+                  <p className="font-medium text-slate-700 text-[11px] italic">{v.role}</p>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">{v.description}</p>
                 </div>
-                <p className="font-medium text-slate-700 text-[11px] italic">{v.role}</p>
-                <p className="text-slate-600 text-[11px] leading-relaxed">{v.description}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Extracurriculars & Leadership */}
-        <div className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
-            Extracurricular Leadership &amp; Activities
-          </h2>
-
+          {/* Extracurriculars & Leadership */}
           <div className="space-y-3">
-            {activities.map((a) => (
-              <div key={a.id} className="text-xs space-y-0.5">
-                <div className="flex items-center justify-between font-bold text-slate-900">
-                  <span className="text-xs font-bold">{a.title}</span>
-                  <span className="text-[10px] text-[#0D7377] bg-[#0D7377]/10 border border-[#0D7377]/20 px-2 py-0.5 rounded font-sans font-bold">
-                    {a.category}
-                  </span>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
+              Extracurricular Leadership &amp; Activities
+            </h2>
+
+            <div className="space-y-3">
+              {activities.map((a) => (
+                <div key={a.id} className="text-xs space-y-0.5">
+                  <div className="flex items-center justify-between font-bold text-slate-900">
+                    <span className="text-xs font-bold">{a.title}</span>
+                    <span className="text-[10px] text-[#0D7377] bg-[#0D7377]/10 border border-[#0D7377]/20 px-2 py-0.5 rounded font-sans font-bold">
+                      {a.category}
+                    </span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">{a.description}</p>
                 </div>
-                <p className="text-slate-600 text-[11px] leading-relaxed">{a.description}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Honors & Certifications */}
-        <div className="space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
-            Academic Honors &amp; Standardized Benchmarks
-          </h2>
+          {/* Honors & Certifications */}
+          <div className="space-y-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
+              Academic Honors &amp; Standardized Benchmarks
+            </h2>
 
-          <ul className="space-y-1 text-xs text-slate-700 list-disc pl-4">
-            {honors.map((h, i) => (
-              <li key={i} className="text-[11px] leading-relaxed">
-                {h}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Verification Footer Stamp */}
-        <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400">
-          <div className="flex items-center space-x-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#0D7377]" />
-            <span>Format compliant with UAE &amp; international university application portals</span>
+            <ul className="space-y-1 text-xs text-slate-700 list-disc pl-4">
+              {honors.map((h, i) => (
+                <li key={i} className="text-[11px] leading-relaxed">
+                  {h}
+                </li>
+              ))}
+            </ul>
           </div>
-          <span className="font-semibold text-[#0D7377]">Powered by Masar UAE</span>
+
+          {/* Verification Footer Stamp */}
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400">
+            <div className="flex items-center space-x-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#0D7377]" />
+              <span>Format compliant with UAE &amp; international university application portals</span>
+            </div>
+            <span className="font-semibold text-[#0D7377]">Powered by Masar UAE</span>
+          </div>
         </div>
       </div>
     </div>

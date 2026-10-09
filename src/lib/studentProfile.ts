@@ -8,6 +8,7 @@ export interface StudentProfile {
   grades: string;
   gpa: string;
   school?: string;
+  curriculum?: string;
   targetMajor?: string;
   phone?: string;
 }
@@ -21,7 +22,9 @@ export const DEFAULT_STUDENT_PROFILE: StudentProfile = {
   grades: "A*AA (Physics, Maths, Chemistry)",
   gpa: "3.9",
   school: "Dubai College",
+  curriculum: "British Curriculum (Year 12)",
   targetMajor: "Computer Science",
+  phone: "+971 50 123 4567",
 };
 
 const STORAGE_KEY = "masar_student_profile";
