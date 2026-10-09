@@ -171,19 +171,19 @@ export default function CompleteProfilePage() {
       <div className="w-full max-w-2xl space-y-6">
         {/* Brand Header with ReactBits TechText Logo (No Arabic, Pure MASARUAE) */}
         <div className="text-center space-y-3 flex flex-col items-center">
-          <Link href="/" className="inline-flex items-center space-x-3.5 sm:space-x-4 group shrink-0" aria-label="MASARUAE Home">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-600 to-emerald-500 flex items-center justify-center text-white shadow-lg group-hover:scale-105 transition-transform duration-200 shrink-0">
-              <GraduationCap className="w-9 h-9 sm:w-11 sm:h-11 text-white" />
+          <Link href="/" className="inline-flex items-center space-x-3 sm:space-x-3.5 group shrink-0" aria-label="MASARUAE Home">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-600 to-emerald-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0">
+              <GraduationCap className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
             </div>
-            <div className="relative h-16 sm:h-20 w-64 sm:w-80 flex items-center select-none overflow-visible">
+            <div className="relative h-12 sm:h-14 w-52 sm:w-60 flex items-center select-none overflow-visible">
               <TechText
                 text="MASARUAE"
-                fontSize={45}
+                fontSize={35}
                 fontWeight={800}
-                reach={90}
-                dashLength={4}
-                dashGap={2.5}
-                specks={14}
+                reach={75}
+                dashLength={3.5}
+                dashGap={2}
+                specks={12}
                 reveal="letter"
                 labels={false}
                 draggable={true}
